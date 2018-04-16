@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Pomodoro Clock</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <style type="text/css">
+  html{
+	height: 100%;
+}
+  	body {
+   min-width:570px;
+   padding-top: 1rem;
+   width: 100%;
+   font-family: 'Helvetica', serif;
+   background-color:#DDA0DD;
+   background-repeat:repeat;
+   background-size:cover;
+   color: #4B0082;
+}
+
+
+.container-fluid {
+  width: 400px;
+  padding: 0 auto;
+}
+
+#setters {
+  font-size: 2.4em;
+  margin-bottom: 20px;
+}
+
+#break-setter, #session-setter {
+  display: inline-block;
+  width: 150px;
+}
+
+#break-minus, #break-plus, #session-minus, #session-plus {
+  cursor: pointer;
+  -webkit-box-shadow:0 0px 4px rgba(0, 0, 0, 1);
+	-moz-box-shadow:0 0px 4px rgba(0, 0, 0, 1);
+	box-shadow:0 0px 4px rgba(0, 0, 0, 1);
+}
+
+#clock {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  margin: 0 auto;
+  border: 5px solid #4B0082;
+  border-radius: 50%;
+  cursor: pointer;
+  overflow: hidden;
+  z-index: 100;
+}
+
+#session, #time-left {
+  display: block;
+  margin-top: 1.8em;
+  font-family: 'Helvetica', serif;
+  font-size: 2.5em;
+  font-weight: bold;
+}
+
+#filler {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 0%;
+  width: 100%;
+  background-color:#4B0082;
+  z-index: -1;
+}
+
+#reset {
+  width: 300px;
+  margin: 2em auto 0;
+}
+
+#reset-button {
+  outline: none;
+  background-color: #4B0082;
+  border-color: #DDA0DD;
+}
+
+h1 {
+   font-family: 'Helvetica', serif;
+  font-size: 3.5em;
+  letter-spacing: 0.2em;
+  color: #4B0082;
+  margin-bottom: 35px;
+}
+
+p {
+   font-family: 'Helvetica', serif;
+  font-size: .43em;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+button {
+  background: none;
+  border: none;
+  outline: none;
+  -webkit-box-shadow:0 0px 4px rgba(0, 0, 0, 1);
+  -moz-box-shadow:0 0px 4px rgba(0, 0, 0, 1);
+  box-shadow:0 0px 4px rgba(0, 0, 0, 1);
+}
+
+
+  </style>
+</head>
+
+<body>
+<div class="container">
+  <h1 class="text-center">Pomodoro Clock</h1>
+  <div id="setters" class="text-center">
+    <div id="break-setter">
+      <p>Break Length</p>
+      <button id="break-minus">-</button>
+      <span id="break-length">5</span>
+      <button id="break-plus">+</button>
+    </div>
+    <div id="session-setter">
+      <p>Session Length</p>
+      <button id="session-minus">-</button>
+      <span id="session-length">25</span>
+      <button id="session-plus">+</button>
+    </div>
+  </div>
+  <div id="clock" class="text-center" onclick="toglTime();">
+    <span id="session">Session</span>
+    <span id="time-left">25:00</span>
+    <span id="filler"></span>
+  </div>
+  <div id="reset">
+    <button id="reset-button" class="btn btn-warning btn-lg btn-block" onclick="reset();">Reset</button>
+  </div>
+</div>
+<script type="text/javascript">
+	
+var timer;
+var isRunning = false;
+var breakLength = 5 * 60, sessionLength = 25 * 60;
+var sessCurrant = "session", currentLength = sessionLength;
+var bell1 = new Audio('http://fullstackwebdesign.net/staging/test/pclock/break.mp3');
+var bell2 = new Audio('http://fullstackwebdesign.net/staging/test/pclock/work.mp3');
+function formatNumber(num) {
+  return (num < 10) ? "0" + num : num;
+}
+function secondsTime(num) {
+num = parseInt(num)
+var hrs = Math.floor(num / 3600);
+var mins = Math.floor(num % 3600 / 60);
+var secs = Math.floor(num % 3600 % 60);
+hrs = (hrs > 0) ? formatNumber(hrs) + ":" : "";
+mins = (mins > 0) ? formatNumber(mins) + ":" : "00:";
+secs = formatNumber(secs);
+return hrs + mins + secs;
+}
+function converToSeconds(time) {
+  time = time.split(":");
+  var counter = 0, numSecs = 0;
+  while (time.length !== 0)
+    {
+      numSecs += parseInt(time.pop()) * Math.pow(60, counter);
+      counter++;
+    } 
+  return numSecs;
+}
+function moveBakGrnd(time) {
+  var current = converToSeconds(time);
+  var percentage = 100 - Math.floor(current / currentLength * 100);
+  $('#filler').css('height', percentage + '%');
+}
+function clock() {
+  var secs = converToSeconds($('#time-left').text());
+  secs--;
+  if (secs >= 0)
+    {
+      var str = secondsTime(secs);
+      $('#time-left').text(str);
+      moveBakGrnd(str);    
+    }
+  else
+    {
+      if (sessCurrant === "session")
+        {
+          sessCurrant = "break";
+          currentLength = breakLength;
+          $('#session').text("Break!");
+          $('#filler').css('background-color',"#EB3333");
+          bell1.play();
+          
+          
+        }
+      else
+        {
+          sessCurrant = "session";
+          currentLength = sessionLength;
+          $('#session').text("Session");
+          $('#filler').css('background-color',"#FFAD00");
+          bell2.play();
+        }
+      $('#time-left').text(secondsTime(currentLength));
+      moveBakGrnd(secondsTime(currentLength));
+    }
+}
+function startTime() {
+  timer = setInterval(clock, 1000);
+}
+function stopTime() {
+  clearInterval(timer);
+}
+function reset() {
+  if (isRunning)
+    {
+      stopTime();
+      isRunning = false;
+    }
+  sessCurrant = "session";
+  currentLength = sessionLength;
+  $('#session').text("Session");
+  $('#filler').css('background-color',"#FFAD00");
+  $('#filler').css('height',"0");
+  $('#time-left').text(secondsTime(currentLength));
+}
+function toglTime() {
+  if (isRunning)
+    {
+      stopTime();
+      isRunning = false;
+    }
+  else
+    {
+      startTime();
+      isRunning = true;
+    }
+}
+$(document).ready(function() {
+  $("#break-minus").click(function() {
+    if (!isRunning)
+      {
+        var num = parseInt($('#break-length').text());
+        num = (num > 0) ? num - 1 : num;
+        $("#break-length").text(num);
+        breakLength = num * 60;
+        if (sessCurrant === "break") {reset();}
+      }
+  });
+  $("#break-plus").click(function() {
+    if (!isRunning)
+      {
+        var num = parseInt($('#break-length').text());
+        num++;
+        $("#break-length").text(num);
+        breakLength = num * 60;
+        if (sessCurrant === "break") {reset();}
+      }
+  });
+  $("#session-minus").click(function() {
+    if(!isRunning)
+      {
+        var num = parseInt($('#session-length').text());
+        num = (num > 1) ? num - 1 : num;
+        $("#session-length").text(num);
+        sessionLength = num * 60;
+        if (sessCurrant === "session") {reset();}
+      }
+  });
+  $("#session-plus").click(function() {
+    if(!isRunning)
+      {
+        var num = parseInt($('#session-length').text());
+        num++;
+        $("#session-length").text(num);
+        sessionLength = num * 60;
+        if (sessCurrant === "session") {reset();}
+      }
+  });
+});
+</script>
+</body>
+</html>
